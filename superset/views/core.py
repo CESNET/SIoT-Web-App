@@ -591,6 +591,27 @@ class DashboardAddView(DashboardModelView):  # noqa
 
 appbuilder.add_view_no_menu(DashboardAddView)
 
+from flask_appbuilder import BaseView
+
+
+class BeeeOnView(BaseView, DeleteMixin):  # noqa
+    route_base = "/beeeon"
+    default_view = "beeeon"
+    # @has_access
+    @expose("/")
+    def beeeon(self):
+        return self.render_template("beeeon/beeeon.html")
+
+
+appbuilder.add_view(
+    BeeeOnView,
+    "BeeeOn",
+    label=__("BeeeOn"),
+    icon="fa-podcast",
+    category="",
+    category_icon="",
+)
+
 
 @app.route("/health")
 def health():
