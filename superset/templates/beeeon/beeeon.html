@@ -20,10 +20,296 @@
 
 {% block title %}{{ _("BeeeOn") }}{% endblock %}
 
+{% block head_css %}
+{{super()}}
+<!-- <link rel="stylesheet" type="text/css" href="/static/siot/bootstrap-3.4.1-dist/css/bootstrap.min.css" /> -->
+<link href="/static/siot/w3.css" rel="stylesheet" type="text/css"/>
+<link rel="stylesheet" type="text/css" href="/static/siot/siot.css"/>
+{% endblock %}
+
+{% block head_js %}
+{{super()}}
+<script src="/static/siot/jquery-3.4.1.min.js"></script>
+{% endblock %}
+
 {% block content %}
   {% include "superset/flash_wrapper.html" %}
 
-  <div class="container">
-    <h1>BeeeOn</h1>
+<div class="panel panel-primary">
+  <div class="panel-heading">
+    <h4 class="panel-title">SIoT NEMEA modules</h4>
   </div>
+  <div class="panel-body list-container">
+
+    <div class="w3-card-2 siot-panel siot-red w3-hide">
+      <div class="w3-row w3-padding">
+        <div class="w3-half">
+          <h4>Connection to SIoT gateway failed.</h4>
+        </div>
+        <div class="w3-half w3-right-align">
+          <button class="w3-button w3-round w3-border w3-border-red">
+            Retry
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="w3-card-2 siot-panel siot-blue">
+      <div class="w3-row w3-padding">
+        <div class="w3-half">
+          <h4>All enabled modules are running.</h4>
+        </div>
+        <div class="w3-half w3-right-align">
+          <button class="w3-button w3-round w3-border w3-border-blue" id="supervisorTableButton">
+            Details
+          </button>
+          <button class="w3-button w3-round w3-border w3-border-blue">
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div class="w3-row w3-padding siot-default-hidden" id="supervisorTableWrapper">
+        <table class="w3-table" id="supervisorTable">
+          <tr>
+            <th>Module</th>
+            <th>Enabled</th>
+            <th>Running</th>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel-heading">
+    <h4 class="panel-title">BeeeOn</h4>
+  </div>
+  <div class="panel-body list-container">
+    <div id=gatewayList>
+    </div>
+  </div>
+
+</div>
+
+<div class="w3-container">
+  <div id="template" class="w3-card-2 w3-padding w3-hide siot-panel siot-green">
+
+    <header class="w3-container ">
+      <div class="w3-row">
+        <div class="w3-half">
+          <h2 class="gateway-name">Gateway 1</h2>
+        </div>
+        <div class="w3-quarter w3-center gateway-id">
+          ID: 314159263359
+        </div>
+        <div class="w3-quarter w3-center gateway-status">
+          active
+        </div>
+      </div>
+    </header>
+
+    <div class="w3-container w3-padding w3-white w3-round">
+      <button class="w3-button w3-round siot-green gwbutton-pair">
+        Pair new device
+      </button>
+    </div>
+
+    <div class="w3-container w3-padding gateway-devices">
+      Paired Devices
+
+      <div id="deviceTemplate"
+           class="w3-border-top w3-border-left w3-border-black w3-white w3-margin-top w3-hide w3-round">
+        <div class="w3-row w3-padding">
+
+          <div class="w3-quarter w3-left-align device-name">
+            Device 1
+          </div>
+
+          <div class="w3-quarter w3-center device-status">
+            connected
+          </div>
+
+          <div class="w3-quarter w3-center device-id">
+            ID: 5532489
+          </div>
+
+          <div class="w3-quarter w3-right-align">
+            <button class="w3-button w3-round siot-green devbutton-unpair">
+              Unpair
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block tail_js %}
+{{super()}}
+<script>
+  $(document).ready(() => {
+
+    function connectToServer() {
+      // auth request na ziskanie tokenu
+      $.ajax({
+        url: 'http://192.168.1.164/gateways',
+        dataType: 'text',
+        type: 'GET',
+        statusCode: {
+          404: function (response) {
+            alert(404);
+          },
+          200: function (response) {
+            alert(response);
+          }
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error');
+        },
+      })
+      // gateways request na ziskanie nasich bran
+      // zavolanie metody na vykreslenie bran
+    }
+    connectToServer();
+
+    let G_gateways = {
+      'Gateway Livingroom': {
+        'id': '314159265359',
+        'active': true,
+        'devices': [
+          {
+            'name': 'Main light',
+            'connected': true,
+            'id': '5532489',
+          },
+          {
+            'name': 'Door',
+            'connected': false,
+            'id': '5909489',
+          },
+        ],
+      },
+    };
+
+    function getGateways() {
+      return G_gateways;
+    }
+
+    // template = $('#template').clone();
+    // template.attr('id', 'newid');
+    // $(template.find('.gateway-name')[0]).html('Gateway 15');
+    // template.appendTo('#gatewayList');
+
+    function renderGateways() {
+      let gws = getGateways();
+
+      for (i in gws) {
+        if (gws.hasOwnProperty(i)) {
+          let gw = gws[i];
+          let template = $('#template').clone();
+
+          template.attr('id', gw.id);
+          template.removeClass('w3-hide');
+
+          $(template.find('.gateway-name')[0]).html(i);
+          $(template.find('.gateway-id')[0]).html("ID:" + gw.id);
+
+          if (gw.active === true)
+            $(template.find('.gateway-status')[0]).html('active');
+          else
+            $(template.find('.gateway-status')[0]).html('inactive');
+
+          //pair new device button na gateway
+          $(template.find('.gwbutton-pair')[0]).click(() => {
+            console.log('pairing process for: ' + gw.id);
+          });
+
+          let devList = $(template.find('.gateway-devices')[0]);
+          for (j in gw.devices) {
+            let dev = gw.devices[j];
+            let devTml = $('#deviceTemplate').clone();
+
+            devTml.attr('id', dev.id);
+            devTml.removeClass('w3-hide');
+
+            $(devTml.find('.device-name')[0]).html(dev.name);
+            $(devTml.find('.device-id')[0]).html("ID:" + dev.id);
+
+            if (dev.connected === true)
+              $(devTml.find('.device-status')[0]).html('connected');
+            else
+              $(devTml.find('.device-status')[0]).html('disconnected');
+
+            //unpair buttom pr zariadenie
+            $(devTml.find('.devbutton-unpair')[0]).click(() => {
+              console.log('unpairing process for: ' + gw.id + ' : ' + dev.id);
+
+              // $.ajax({
+              //   url: 'http://192.168.1.1/cgi-bin/luci/command/cfg0b9944',
+              //   dataType: 'text',
+              //   type: 'GET',
+              //   async: true,
+              //   statusCode: {
+              //     404: function (response) {
+              //       alert(404);
+              //     },
+              //     200: function (response) {
+              //       alert(response);
+              //     }
+              //   },
+              //   error: function (jqXHR, status, errorThrown) {
+              //     alert('error');
+              //   },
+              // })
+            });
+
+            devList.append(devTml);
+          }
+
+          template.appendTo('#gatewayList');
+        }
+      }
+
+    }
+
+    $('#supervisorTableButton').click(() => {
+      $('#supervisorTableWrapper').slideToggle();
+    });
+
+
+    renderGateways();
+    window.SIoTSupervisorlStatus =  (data) => {
+      console.log(data);
+      let table = $('#supervisorTable');
+      for (m in data.modules) {
+        if (data.modules.hasOwnProperty(m)){
+          console.log(m);
+          console.log(data.modules[m].enabled);
+          console.log(data.modules[m].running);
+          let en = data.modules[m].enabled;
+          let run = data.modules[m].running;
+          table.append(`<tr><td>${m}</td><td>${en}</td><td>${run}</td></tr>`);
+
+        }
+      }
+    };
+
+    $.ajax({
+      url: "http://192.168.1.1/cgi-bin/luci/command/cfg0d9944",
+
+      dataType: "jsonp",
+      success: function (response) {
+        console.log(response); // server response
+        alert(response);
+      }
+
+    });
+
+  });
+</script>
 {% endblock %}
