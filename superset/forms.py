@@ -20,6 +20,7 @@ from superset.models import core as models
 
 config = app.config
 
+import os
 
 class CommaSeparatedListField(Field):
     widget = BS3TextFieldWidget()
@@ -54,25 +55,42 @@ class CsvToDatabaseForm(DynamicForm):
             models.Database).filter_by(
                 allow_csv_upload=True).all()
 
+    sez = '';
+    list = os.listdir('/etc/coliot/unirec/')
+
+    for ln in list:
+        sez = sez + ' <tr> <td>'+ln+'</td> <td>root</td> <td>28.08.2018 11:21</td> <td>.md</td> <td>342 Kb</td> <td><p data-placement="top" data-toggle="tooltip" title="Edit"><div class="btn btn-success btn-xs" data-title="Edit" data-toggle="modal" data-target="#edit" data-path="'+ln+'"><span class="glyphicon glyphicon-open"></span></div></p></td> </tr>'
+
     name = StringField(
         _('Table Name'),
         description=_('Name of table to be created from csv data.'),
         validators=[DataRequired()],
         widget=BS3TextFieldWidget())
-    csv_file = FileField(
-        _('CSV File'),
-        description=_('Select a CSV file to be uploaded to a database.'),
-        validators=[
-            FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
+    unirec_file = StringField(
+        _('Select UniRec'),
+        description=_('<div class="container"> <button type="button" class="btn btn-info" data-toggle="modal" data-target="#myModal">Select file</button>'
+                      '<!-- Modal --> '
+                      '<div class="modal fade" id="myModal" role="dialog" style="display: none;"> '
+                      '<div class="modal-dialog"> '
+                      '<!-- Modal content--> '
+                      '<div class="modal-content"> <div class="modal-header"> <button type="button" class="close" data-dismiss="modal">×</button>'
+                      '<h4 class="modal-title">Chose file</h4> </div> <div class="modal-body"> '
+                      '<table id="mytable" class="table table-bordred table-striped"> '
+                      '<thead> '
+                      '<tr>'
+                      '<th>File name</th> <th>Author</th> <th>Data and time</th>'
+                      '<th>Format</th> '
+                      '<th>Size</th> '
+                      '<th>Translate</th> '
+                      '</tr>'
+                      '</thead> '
+                      '<tbody id="file_name"> </tbody> '
+                                         '</table>'
+                                         '</div> <div class="modal-footer"> </div> </div> </div> </div> </div>'))
     con = QuerySelectField(
         _('Database'),
         query_factory=csv_enabled_dbs,
         get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
-    sep = StringField(
-        _('Delimiter'),
-        description=_('Delimiter used by CSV file (for whitespace use \s+).'),
-        validators=[DataRequired()],
-        widget=BS3TextFieldWidget())
     if_exists = SelectField(
         _('Table Exists'),
         description=_(

@@ -26,10 +26,8 @@ from superset.stats_logger import DummyStatsLogger
 STATS_LOGGER = DummyStatsLogger()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-if 'SUPERSET_HOME' in os.environ:
-    DATA_DIR = os.environ['SUPERSET_HOME']
-else:
-    DATA_DIR = os.path.join(os.path.expanduser('~'), '.superset')
+
+DATA_DIR = '/opt/coliot/superset/db_coliot'
 
 # ---------------------------------------------------------
 # Superset specific config
@@ -59,7 +57,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'coliot.db')
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -95,7 +93,7 @@ ENABLE_PROXY_FIX = False
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = 'Superset'
+APP_NAME = 'Coliot'
 
 # Uncomment to setup an App icon
 APP_ICON = '/static/assets/images/superset-logo@2x.png'
@@ -175,6 +173,9 @@ LANGUAGES = {
 # ---------------------------------------------------
 # The file upload folder, when using models with files
 UPLOAD_FOLDER = BASE_DIR + '/app/static/uploads/'
+
+# The UniRec folder
+UNIREC_FOLDER = '/etc/coliot/unirec/'
 
 # The image upload folder, when using models with images
 IMG_UPLOAD_FOLDER = BASE_DIR + '/app/static/uploads/'
@@ -267,13 +268,13 @@ LOG_LEVEL = 'DEBUG'
 
 ENABLE_TIME_ROTATE = False
 TIME_ROTATE_LOG_LEVEL = 'DEBUG'
-FILENAME = os.path.join(DATA_DIR, 'superset.log')
+FILENAME = os.path.join(DATA_DIR, 'coliot.log')
 ROLLOVER = 'midnight'
 INTERVAL = 1
 BACKUP_COUNT = 30
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
+MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', 'pk.eyJ1IjoiY29saW90IiwiYSI6ImNqb2loYndlbzA4Y3gzcG50eTVjazNjdzQifQ.Rr0TT-eNt5oIvZbidhEYsw')
 
 # Maximum number of rows returned in the SQL editor
 SQL_MAX_ROW = 1000

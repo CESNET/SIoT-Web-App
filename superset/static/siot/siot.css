@@ -1,0 +1,29 @@
+.siot-panel {
+  border-right: 6px solid;
+  border-left: 6px solid;
+  margin-bottom: 10px;
+}
+
+.siot-green {
+  background-color: rgba(0, 124, 0, 0.2);
+  border-color: #4CAF50;
+}
+
+.siot-red {
+  background-color: #ffdddd;
+  border-color: #f44336;
+}
+
+.siot-blue {
+  background-color: rgba(0, 0, 255, 0.05);
+  border-color: #2196F3;
+}
+
+/* .w3-button:hover{
+  border-right: 2px solid!important;
+  border-left: 2px solid!important;
+} */
+
+.siot-default-hidden {
+  display: none;
+}

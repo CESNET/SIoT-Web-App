@@ -11,6 +11,8 @@ import os
 import re
 import time
 import traceback
+import codecs
+import sys
 from urllib import parse
 
 from flask import (
@@ -260,14 +262,14 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         DeleteMixin._delete(self, pk)
 
 
-appbuilder.add_link(
-    'Import Dashboards',
-    label=__('Import Dashboards'),
-    href='/superset/import_dashboards',
-    icon='fa-cloud-upload',
-    category='Manage',
-    category_label=__('Manage'),
-    category_icon='fa-wrench')
+# appbuilder.add_link(
+#     'Import Dashboards',
+#     label=__('Import Dashboards'),
+#     href='/superset/import_dashboards',
+#     icon='fa-cloud-upload',
+#     category='Manage',
+#     category_label=__('Manage'),
+#     category_icon='fa-wrench')
 
 
 appbuilder.add_view(
@@ -292,14 +294,30 @@ class DatabaseAsync(DatabaseView):
 
 appbuilder.add_view_no_menu(DatabaseAsync)
 
+from flask_appbuilder import BaseView
 
-class CsvToDatabaseView(SimpleFormView):
-    form = CsvToDatabaseForm
-    form_title = _('CSV to Database configuration')
-    add_columns = ['database', 'schema', 'table_name']
 
+class BeeeOnView(BaseView, DeleteMixin):  # noqa
+    route_base = "/beeeon"
+    default_view = "beeeon"
+    # @has_access
+    @expose("/")
+    def beeeon(self):
+        return self.render_template("beeeon/beeeon.html")
+
+
+appbuilder.add_view(
+    BeeeOnView,
+    "BeeeOn",
+    label=__("BeeeOn"),
+    icon="fa-podcast",
+    category="",
+    category_icon="",
+)
+
+
+class ShowUniRecFiles(SimpleFormView):
     def form_get(self, form):
-        form.sep.data = ','
         form.header.data = 0
         form.mangle_dupe_cols.data = True
         form.skipinitialspace.data = False
@@ -309,13 +327,64 @@ class CsvToDatabaseView(SimpleFormView):
         form.if_exists.data = 'append'
 
     def form_post(self, form):
-        csv_file = form.csv_file.data
-        form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
-        csv_filename = form.csv_file.data.filename
-        path = os.path.join(config['UPLOAD_FOLDER'], csv_filename)
+        return redirect('/showunirecfiles')
+
+        message = _('CSV file "{0}" uploaded to table "{1}" in '
+                    'database "{2}"'.format(unirec_filename,
+                                            form.name.data,
+                                            db_name))
+        flash(message, 'info')
+        return redirect('/showunirecfiles')
+
+appbuilder.add_view_no_menu(ShowUniRecFiles)
+
+class UnirecToDatabaseView(SimpleFormView):
+    logger = '/usr/bin/nemea/logger'
+
+    form = CsvToDatabaseForm
+    form_title = _('UniRec to Database configuration')
+    add_columns = ['database', 'schema', 'table_name']
+
+    def form_get(self, form):
+        sez = ''
+        list = os.listdir('/etc/coliot/unirec/')
+
+        for ln in list:
+            sez = sez +ln + ";"
+        form.unirec_file.data = sez
+        form.header.data = 0
+        form.mangle_dupe_cols.data = True
+        form.skipinitialspace.data = False
+        form.skip_blank_lines.data = True
+        form.infer_datetime_format.data = True
+        form.decimal.data = '.'
+        form.if_exists.data = 'append'
+
+    def form_post(self, form):
+        logger = '/usr/bin/nemea/logger' # path on the logger
+        in_path = '/etc/coliot/unirec/' # chose default path for UniRec files
+        temp_filename = 'temp.csv' # TODO generate this file name
+
+        unirec_filename = form.unirec_file.data
+        path = os.path.join(config['UNIREC_FOLDER'], form.unirec_file.data + '.csv')
+
+        os.system(logger + ' -i f:' + in_path + unirec_filename + ' -t -w ' + path)
+        form.unirec_file.data = form.unirec_file.data + '.csv'
+
         try:
-            utils.ensure_path_exists(config['UPLOAD_FOLDER'])
-            csv_file.save(path)
+            with open(path, 'r') as file:
+                data = file.readlines()
+                data[0] = data[0].replace(' ', '_')
+            with open(path, 'w') as file:
+                file.writelines(data)
+        except IOError:
+            file.close()
+        finally:
+            file.close()
+
+
+        try:
+            utils.ensure_path_exists(config['UNIREC_FOLDER'])
             table = SqlaTable(table_name=form.name.data)
             table.database = form.data.get('con')
             table.database_id = table.database.id
@@ -325,25 +394,25 @@ class CsvToDatabaseView(SimpleFormView):
                 os.remove(path)
             except OSError:
                 pass
-            message = 'Table name {} already exists. Please pick another'.format(
-                form.name.data) if isinstance(e, IntegrityError) else text_type(e)
-            flash(
-                message,
-                'danger')
-            return redirect('/csvtodatabaseview/form')
+                message = 'Table name {} already exists. Please pick another'.format(
+                    form.name.data) if isinstance(e, IntegrityError) else text_type(e)
+                flash(
+                    message,
+                    'danger')
+            return redirect('/unirectodatabaseview/form')
 
         os.remove(path)
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
         message = _('CSV file "{0}" uploaded to table "{1}" in '
-                    'database "{2}"'.format(csv_filename,
+                    'database "{2}"'.format(unirec_filename,
                                             form.name.data,
                                             db_name))
         flash(message, 'info')
         return redirect('/tablemodelview/list/')
 
 
-appbuilder.add_view_no_menu(CsvToDatabaseView)
+appbuilder.add_view_no_menu(UnirecToDatabaseView)
 
 
 class DatabaseTablesAsync(DatabaseView):
@@ -1170,7 +1239,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/import_dashboards', methods=['GET', 'POST'])
     def import_dashboards(self):
-        """Overrides the dashboards using json instances from the file."""
+        """Overrides the dashboards using json  from the file."""
         f = request.files.get('file')
         if request.method == 'POST' and f:
             current_tt = int(time.time())
@@ -2757,15 +2826,15 @@ class CssTemplateAsyncModelView(CssTemplateModelView):
     list_columns = ['template_name', 'css']
 
 
-appbuilder.add_separator('Sources')
-appbuilder.add_view(
-    CssTemplateModelView,
-    'CSS Templates',
-    label=__('CSS Templates'),
-    icon='fa-css3',
-    category='Manage',
-    category_label=__('Manage'),
-    category_icon='')
+# appbuilder.add_separator('Sources')
+# appbuilder.add_view(
+#     CssTemplateModelView,
+#     'CSS Templates',
+#     label=__('CSS Templates'),
+#     icon='fa-css3',
+#     category='Manage',
+#     category_label=__('Manage'),
+#     category_icon='')
 
 
 appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
@@ -2791,15 +2860,14 @@ appbuilder.add_link(
 )
 
 appbuilder.add_link(
-    'Upload a CSV',
-    label=__('Upload a CSV'),
-    href='/csvtodatabaseview/form',
+    'UniRec',
+    label=__('UniRec'),
+    href='/unirectodatabaseview/form',
     icon='fa-upload',
     category='Sources',
     category_label=__('Sources'),
     category_icon='fa-wrench')
 appbuilder.add_separator('Sources')
-
 
 @app.after_request
 def apply_caching(response):

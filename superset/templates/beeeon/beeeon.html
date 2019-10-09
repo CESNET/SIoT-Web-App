@@ -1,0 +1,573 @@
+{#
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+#}
+{% extends "appbuilder/base.html" %}
+
+{% block title %}{{ _("BeeeOn") }}{% endblock %}
+
+{% block head_css %}
+{{super()}}
+<!-- <link rel="stylesheet" type="text/css" href="/static/siot/bootstrap-3.4.1-dist/css/bootstrap.min.css" /> -->
+<link href="/static/siot/w3.css" rel="stylesheet" type="text/css"/>
+<link rel="stylesheet" type="text/css" href="/static/siot/siot.css"/>
+{% endblock %}
+
+{% block head_js %}
+{{super()}}
+<script src="/static/siot/jquery-3.4.1.min.js"></script>
+{% endblock %}
+
+{% block content %}
+{% include "superset/flash_wrapper.html" %}
+
+<div class="panel panel-primary">
+  <div class="panel-heading">
+    <h4 class="panel-title">SIoT NEMEA modules</h4>
+  </div>
+  <div class="panel-body list-container">
+
+    <div class="w3-card-2 siot-panel siot-red w3-hide">
+      <div class="w3-row w3-padding">
+        <div class="w3-half">
+          <h4>Connection to SIoT gateway failed.</h4>
+        </div>
+        <div class="w3-half w3-right-align">
+          <button class="w3-button w3-round w3-border w3-border-red">
+            Retry
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="w3-card-2 siot-panel siot-blue">
+      <div class="w3-row w3-padding">
+        <div class="w3-half">
+          <h4>All enabled modules are running.</h4>
+        </div>
+        <div class="w3-half w3-right-align">
+          <button class="w3-button w3-round w3-border w3-border-blue" id="supervisorTableButton">
+            Details
+          </button>
+          <button class="w3-button w3-round w3-border w3-border-blue" id="RefreshButton">
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div class="w3-row w3-padding siot-default-hidden" id="supervisorTableWrapper">
+        <table class="w3-table" id="supervisorTable">
+          <tr>
+            <th>Module</th>
+            <th>Enabled</th>
+            <th>Running</th>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel-heading">
+    <h4 class="panel-title">BeeeOn</h4>
+  </div>
+
+
+  <div class="panel-body list-container">
+    <div class="w3-card-2 siot-panel siot-green">
+      <div class="w3-row w3-padding">
+        <div class="w3-half">
+          <label for="idForm">ID:</label>
+          <input id="idForm" value="Enter ID of Gateway">
+          <label for="nameForm">Name:</label>
+          <input id="nameForm" value="Enter Name of Gateway">
+        </div>
+        <div class="w3-half w3-right-align">
+          (Try id 1915348563017905)
+          <button class="w3-button w3-round w3-border w3-border-green" id="addGatewayButton">
+            Add Gateway
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id=gatewayList>
+    </div>
+  </div>
+
+</div>
+
+<div class="w3-container">
+  <div id="template" class="w3-card-2 w3-padding w3-hide siot-panel siot-green">
+
+    <header class="w3-container ">
+      <div class="w3-row">
+        <div class="w3-half">
+          <h2 class="gateway-name">Gateway 1</h2>
+        </div>
+        <div class="w3-quarter w3-center gateway-id">
+          ID: 314159263359 //"gateway-id"
+        </div>
+        <div class="w3-quarter w3-center gateway-status">
+          active
+        </div>
+      </div>
+    </header>
+
+    <div class="w3-container w3-padding w3-white w3-round">
+      <button class="w3-button w3-round siot-green gwbutton-removegw">
+        Remove gateway
+      </button>
+      <button class="w3-button w3-round siot-green gwbutton-pair">
+        Discover devices
+      </button>
+      <button class="w3-button w3-round siot-green gwbutton-unpair">
+        Unpair devices
+      </button>
+    </div>
+
+    <div class="w3-container w3-padding gateway-devices">
+      Paired Devices
+
+      <div id="deviceTemplate"
+           class="w3-border-top w3-border-left w3-border-black w3-white w3-margin-top w3-hide w3-round">
+        <div class="w3-row w3-padding">
+
+          <div class="w3-quarter w3-left-align device-name">
+            Device 1
+          </div>
+
+          <div class="w3-quarter w3-center device-status">
+            connected
+          </div>
+
+          <div class="w3-quarter w3-center device-id">
+            ID: 5532489
+          </div>
+
+          <div class="w3-quarter w3-right-align">
+            <button class="w3-button w3-round siot-green devbutton-unpair">
+              Unpair
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block tail_js %}
+{{super()}}
+<script>
+  let host = "http://10.0.0.13";
+  let port = "8010";
+  let api_key = "dah9En4oimoo8jo5shae4duoShau0ipaav8Raezouqu1eik0xiNgelaisuqueehahpe3jooph1eiNiet";
+  let GWdata = {
+    "id": "1915348563017905",
+    "name": "Lab_GW",
+    "timezone_id": "Europe/Prague"
+  };
+  let bearer;
+  let GWinfo;
+  let sensors;
+  let GWlist;
+  $(document).ready(() => {
+    $(window).on('beforeunload', function(){
+      function logout() {
+        $.ajax({
+          url: host + ':' + port +'/auth',
+          dataType: 'json',
+          type: 'DELETE',
+          error: function (jqXHR, status, errorThrown) {
+            alert('error')
+          },
+          beforeSend: function(xhr, settings) {
+            xhr.setRequestHeader('Authorization','Bearer ' + bearer); }
+        })
+      }
+      logout();
+    });
+    //POST /auth - authenticates user and gets bearer for verified communication of user with server
+    function connectToServer() {
+      $.ajax({
+        url: host + ':' + port +'/auth',
+        dataType: 'json',
+        type: 'POST',
+        data: JSON.stringify({'key': api_key, 'provider': 'apikey'}),
+        success: function (response) {
+          bearer = response.data.id;
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+      })
+    }
+    //GET /gateways gets information about connected gateways
+    function getGatewaysData() {
+      $.ajax({
+        url: host + ':' + port +'/gateways',
+        dataType: 'json',
+        type: 'GET',
+        statusCode: {
+          404: function (response) {
+            alert(404);
+          },
+          200: function (response) {
+            // alert(response);
+          }
+        },
+        success: function(response) {
+          let name = response.data[0].name;
+          let id = response.data[0].id;
+          GWinfo = {
+            [name]: {
+              'id': id,
+              'active': true,
+            },
+          };
+          console.log(response);
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+        complete: function (xhr, status) {
+          renderGateways();
+        }
+      })
+    }
+    //GET /gateways/$gateway_id/devices - get data of connected devices
+    function getDevicesData() {
+      $.ajax({
+        url: host + ':' + port +'/gateways/' + GWdata.id + '/devices',
+        dataType: 'json',
+        type: 'GET',
+        statusCode: {
+          404: function (response) {
+            alert(404);
+          },
+          200: function (response) {
+            // alert(response);
+          }
+        },
+        success: function(response) {
+          GWinfo[GWdata.name].devices = [];
+          for (i in response.data) {
+            GWinfo[GWdata.name].devices.push({
+              'name': response.data[i].name,
+              'active': response.data[i].state,
+              'id': response.data[i].id,
+            });
+          }
+          console.log(response);
+          console.log(GWinfo);
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+        complete: function (xhr, status) {
+          renderGateways();
+        }
+      })
+    }
+    //GET /gateways/$gateway_id/discovery - finds devices near the gateway and connect them
+    function discoverDevices() {
+      $.ajax({
+        url: host + ':' + port +'/gateways/' + GWdata.id + '/discovery',
+        dataType: 'json',
+        type: 'POST',
+        data: JSON.stringify({"time_limit": 30}),
+        statusCode: {
+          404: function (response) {
+            alert(404);
+          },
+          200: function (response) {
+            // alert(response);
+          }
+        },
+        success: function(response) {
+          console.log(response);
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+        complete: function (xhr, status) {
+          getDevicesData();
+        }
+      })
+    }
+    //POST /gateways/ - connects gateway to user
+    function connectGateway() {
+      $.ajax({
+        url: host + ':' + port +'/gateways',
+        dataType: 'json',
+        contentType: 'application/json',
+        type: 'POST',
+        data: JSON.stringify(GWdata),
+        statusCode: {
+          404: function (response) {
+            alert(404);
+          },
+          400: function (response) {
+            alert('ERROR: Invalid Gateway ID entered!');
+          },
+          201: function (response) {
+            // alert("gateway added to user");
+          }
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer);
+        },
+        complete: function (xhr, status) {
+          getGatewaysData();
+        }
+      })
+    }
+    //DELETE /gateways/$gateway_id/devices/$device_id - disconnects devices from gateway
+    function disconnectDevices() {
+      for (i in GWinfo[GWdata.name].devices) {
+        $.ajax({
+          url: host + ':' + port +'/gateways/' + GWinfo[GWdata.name].id + '/devices/' + GWinfo[GWdata.name].devices[i].id,
+          dataType: 'json',
+          type: 'DELETE',
+          statusCode: {
+            404: function (response) {
+              alert(404);
+            },
+            202: function (response) {
+              console.log("deleted device" + response.data.id);
+            }
+          },
+          error: function (jqXHR, status, errorThrown) {
+            alert('error')
+          },
+          beforeSend: function(xhr, settings) {
+            xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+        })
+      }
+      GWinfo[GWdata.name].devices = [];
+      $('#deviceTemplate').empty();
+      renderGateways();
+    }
+    //DELETE /gateways/$gateway_id - disconnects gateway from user
+    function disconnectGateway() {
+      $.ajax({
+        url: host + ':' + port +'/gateways/1915348563017905',
+        dataType: 'json',
+        type: 'DELETE',
+        statusCode: {
+          404: function (response) {
+            alert(404);
+          },
+          200: function (response) {
+            alert(response);
+          }
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+        complete: function (xhr, status) {
+          $('#gatewayList').empty();
+        }
+      })
+    }
+    //PUT /gateways/$gateway_id/devices/$device_id - update info (set name, active/inactive,...)
+    function updateDevice() {
+      $.ajax({
+        url: host + ':' + port +'/gateways/' + GWinfo[GWdata.name].id + '/devices/' + GWinfo[GWdata.name].devices[0].id,
+        dataType: 'json',
+        contentType: 'application/json',
+        type: 'PUT',
+        data: JSON.stringify({"name": "PGX"}),
+        statusCode: {
+          404: function (response) {
+            alert(404);
+          },
+          201: function (response) {
+            // alert("gateway added to user");
+          }
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer);
+        },
+        complete: function (xhr, status) {
+          showAfter();
+        }
+      })
+    }
+    function showAfter() {
+      $.ajax({
+        url: host + ':' + port +'/gateways/' + GWdata.id + '/devices',
+        dataType: 'json',
+        type: 'GET',
+        success: function(response) {
+          console.log(response);
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+        complete: function (xhr, status) {
+          renderGateways();
+        }
+      })
+    }
+    //GET /gateways/$gateway_id/devices/$device_id/sensors - list sensors
+    function showSensors() {
+      $.ajax({
+        url: host + ':' + port +'/gateways/' + GWdata.id + '/devices/' + GWinfo[GWdata.name].devices[0].id + '/sensors',
+        dataType: 'json',
+        type: 'GET',
+        success: function(response) {
+          sensors = response;
+          console.log(sensors);
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+        complete: function (xhr, status) {
+          renderGateways();
+        }
+      })
+    }
+    //GET /gateways/$gateway_id/devices/$device_id/sensors/$sensor_id - show details of sensor(measured value...)
+    function showSensorData() {
+      $.ajax({
+        url: host + ':' + port +'/gateways/' + GWdata.id + '/devices/' + GWinfo[GWdata.name].devices[2].id + '/sensors/' + sensors[0].id,
+        dataType: 'json',
+        type: 'GET',
+        success: function(response) {
+          console.log(response);
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+        complete: function (xhr, status) {
+          renderGateways();
+        }
+      })
+    }
+    // auth request na ziskanie tokenu
+    connectToServer();
+    function getGateways() {
+      return GWinfo;
+    }
+    // template = $('#template').clone();
+    // template.attr('id', 'newid');
+    // $(template.find('.gateway-name')[0]).html('Gateway 15');
+    // template.appendTo('#gatewayList');
+    function renderGateways() {
+      let gws = getGateways();
+      for (i in gws) {
+        if (gws.hasOwnProperty(i)) {
+          let gw = gws[i];
+          let template = $('#template').clone();
+          template.attr('id', gw.id);
+          template.removeClass('w3-hide');
+          $(template.find('.gateway-name')[0]).html(i);
+          $(template.find('.gateway-id')[0]).html("ID:" + gw.id);
+          if (gw.active === true)
+            $(template.find('.gateway-status')[0]).html('active');
+          else
+            $(template.find('.gateway-status')[0]).html('inactive');
+          //pair discover devices button na gateway
+          $(template.find('.gwbutton-removegw')[0]).click(() => {
+            console.log('removal process for: ' + gw.id);
+            disconnectGateway();
+          });
+          //pair discover devices button na gateway
+          $(template.find('.gwbutton-pair')[0]).click(() => {
+            console.log('pairing process for: ' + gw.id);
+            discoverDevices();
+          });
+          //pair unpair devices button na gateway
+          $(template.find('.gwbutton-unpair')[0]).click(() => {
+            console.log('unpairing process for: ' + gw.id);
+            disconnectDevices();
+          });
+          let devList = $(template.find('.gateway-devices')[0]);
+          for (j in gw.devices) {
+            let dev = gw.devices[j];
+            let devTml = $('#deviceTemplate').clone();
+            devTml.attr('id', dev.id);
+            devTml.removeClass('w3-hide');
+            $(devTml.find('.device-name')[0]).html(dev.name);
+            $(devTml.find('.device-id')[0]).html("ID:" + dev.id);
+            $(devTml.find('.device-status')[0]).html(dev.active);
+            $(devTml.find('.device-status')[0]).html(dev.active);
+            //unpair buttom pr zariadenie
+            $(devTml.find('.devbutton-unpair')[0]).click(() => {
+              console.log('unpairing process for: ' + gw.id + ' : ' + dev.id);
+            });
+            devList.append(devTml);
+          }
+          $('#gatewayList').empty();
+          template.appendTo('#gatewayList');
+        }
+      }
+    }
+    $('#addGatewayButton').click(() => {
+      GWdata.id = $('#idForm').val();
+      GWdata.name = $('#nameForm').val();
+      connectGateway();
+      // alert('add Gateway');
+    });
+    $('#supervisorTableButton').click(() => {
+      $('#supervisorTableWrapper').slideToggle();
+    });
+    // renderGateways();
+    window.SIoTSupervisorlStatus =  (data) => {
+      console.log(data);
+      let table = $('#supervisorTable');
+      for (m in data.modules) {
+        if (data.modules.hasOwnProperty(m)){
+          console.log(m);
+          console.log(data.modules[m].enabled);
+          console.log(data.modules[m].running);
+          let en = data.modules[m].enabled;
+          let run = data.modules[m].running;
+          table.append(`<tr><td>${m}</td><td>${en}</td><td>${run}</td></tr>`);
+        }
+      }
+    };
+    $.ajax({
+      url: "http://192.168.1.1/cgi-bin/luci/command/cfg0d9944",
+      dataType: "jsonp",
+      success: function (response) {
+        console.log(response); // server response
+        alert(response);
+      }
+    });
+  });
+</script>
+{% endblock %}
