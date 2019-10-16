@@ -6,9 +6,6 @@ changelog.sh
 .DS_Store
 .coverage
 _build
-_static
-!static/assets/dist
-!static/assets/dist
 _images
 _modules
 superset/bin/supersetc
