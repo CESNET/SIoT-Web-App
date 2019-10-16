@@ -1,1 +1,1 @@
-sqlite3 /opt/coliot/superset/db_coliot/coliot.db < /opt/coliot/superset/db_coliot/data.sql
+sqlite3 /home/siot/SIoT-Web-App/superset/db_coliot/coliot.db < /home/siot/SIoT-Web-App/superset/db_coliot/data.sql
