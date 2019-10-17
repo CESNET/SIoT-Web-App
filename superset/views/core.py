@@ -295,6 +295,7 @@ class DatabaseAsync(DatabaseView):
 appbuilder.add_view_no_menu(DatabaseAsync)
 
 from flask_appbuilder import BaseView
+from flask_login import current_user
 
 
 class BeeeOnView(BaseView, DeleteMixin):  # noqa
@@ -303,8 +304,12 @@ class BeeeOnView(BaseView, DeleteMixin):  # noqa
     # @has_access
     @expose("/")
     def beeeon(self):
-        return self.render_template("beeeon/beeeon.html")
+        if current_user.is_authenticated:
+            return self.render_template("beeeon/beeeon.html")
+        else:
+            return redirect("http://192.168.1.248:8088/users/userinfo/")
 
+        
 
 appbuilder.add_view(
     BeeeOnView,
