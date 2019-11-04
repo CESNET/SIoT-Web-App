@@ -1,3 +1,134 @@
+SIoT-Web-App
+=========
+
+Prerequisites
+------------------
+Installation NEMEA System from github
+* https://github.com/CESNET/Nemea
+
+Install NEMEA pytrap
+```
+pip install nemea-pytrap
+```
+
+
+
+Install process
+------------------
+Process for system Centos 7:
+```
+sudo su
+cd SIoT-Web-App
+```
+
+  * update yum:
+  ```
+  yum update
+  ```
+
+  * install dependencies
+  ```
+  yum install gcc gcc-c++ kernel-devel make  (build-essential)
+  yum install libssl-dev libffi-dev python3-dev python3-pip libsasl2-dev openldap-devel -y
+  ```
+
+  * Install SQLite3 and Mysql (https://linode.com/docs/databases/mysql/how-to-install-mysql-on-centos-7/)
+  ```
+  yum install sqlite3
+  wget http://repo.mysql.com/mysql-community-release-el7-5.noarch.rpm
+  rpm -ivh mysql-community-release-el7-5.noarch.rpm
+  yum update
+  yum install mysql-server libmysqlclient-dev -y
+  yum install nodejs npm -y
+  ```
+
+  * Set up coliot-modul
+  ```
+  echo '[SQLITE]
+  database = /<full_path_to_repository>/superset/db_coliot/coliot.db' > /<full_path_to_repository>/coliot-modul/coliot.conf
+  ```
+
+  * Create python virtualenv and install packages
+  ```
+  virtualenv .siotwebappenv --python=python3.6 
+  . .siotwebappenv/bin/activate
+  pip2 install configparser
+  pip install --upgrade setuptools
+  pip install python-dotenv
+  pip install click==6.7
+  pip install markdown==2.6.11
+  pip install tabulator==1.20.0
+  
+  pip install -r /opt/coliot/requirements.txt
+  pip install -r /opt/coliot/requirements-dev.txt
+  pip install psycopg2-binary
+  pip install -e /opt/coliot/.
+  ```
+
+  * Configure COLIOT
+  ```
+  you may need to change owner to <user> from <root>:
+  chown -R <user>:<user> .
+  
+  you may need to also add write oprion to all files in SIoT-Web-App folder:
+  find /<full_path_to_repository>/ -type f -exec chmod g+w {} \;
+  
+  fabmanager create-admin --app superset
+  superset db upgrade
+  superset init
+  . /<full_path_to_repository>/superset/db_coliot/load_data.sh
+  ```
+  
+ Run SIot-Web-App
+ --------------
+ ```
+ cd SIoT-Web-App
+ . .siotwebappenv/bin/activate
+ superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger
+ ```
+  
+
+ Run Coliot
+ --------------
+ ### Template configuration
+To create new template, a user first needs to specify a set of fields and their types in the template.
+
+Example of the template definition /template/dispatch.tml
+```
+[MAIN]
+TemplateName = DispatchTemplate
+TableName = siot_dispatch
+Enable = true
+
+[FIELDS]
+ID = uint64
+TIME = double
+cmd = string
+```
+### Run instruction
+```
+sudo ./coliot.py -i u:coliot-socket
+# Example test for autogenerate data
+sudo ./nemea-generator
+```
+
+### Description
+
+### Interfaces
+- Input: One UniRec interface, which you must specify in the template file.
+  
+### Parameters
+#### Common TRAP parameters
+- `-h [trap,1]`      Print help message for this module / for libtrap specific parameters.
+- `-i IFC_SPEC`      Specification of interface types and their parameters.
+- `-v`               Be verbose.
+- `-vv`              Be more verbose.
+- `-vvv`             Be even more verbose.
+
+## Screenshot of the web-interface
+![alt text](https://github.com/gre0071/coliot/blob/master/screen.PNG)
+
+
 Superset
 =========
 
