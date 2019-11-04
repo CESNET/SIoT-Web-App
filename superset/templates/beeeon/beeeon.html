@@ -131,8 +131,11 @@ under the License.
       <button class="w3-button w3-round siot-green gwbutton-removegw">
         Remove gateway
       </button>
-      <button class="w3-button w3-round siot-green gwbutton-pair">
+      <button class="w3-button w3-round siot-green gwbutton-discover">
         Discover devices
+      </button>
+      <button class="w3-button w3-round siot-green gwbutton-show">
+        Show devices
       </button>
       <button class="w3-button w3-round siot-green gwbutton-unpair">
         Unpair devices
@@ -143,9 +146,9 @@ under the License.
       Paired Devices
 
       <div id="deviceTemplate"
-           class="w3-border-top w3-border-left w3-border-black w3-white w3-margin-top w3-hide w3-round">
-        <div class="w3-row w3-padding">
+           class="w3-border-top w3-border-left w3-border-black w3-white w3-margin-top w3-hide w3-round device-sensors">
 
+        <div class="w3-row w3-padding">
           <div class="w3-quarter w3-left-align device-name">
             Device 1
           </div>
@@ -157,20 +160,88 @@ under the License.
           <div class="w3-quarter w3-center device-id">
             ID: 5532489
           </div>
-
-          <div class="w3-quarter w3-right-align">
+          <div class="w3-quarter w3-right_align device-id">-->
             <button class="w3-button w3-round siot-green devbutton-unpair">
               Unpair
             </button>
           </div>
-
         </div>
+
+        <div class="w3-row w3-padding">
+<!--          <div class="w3-quarter">-->
+          <div class="w3-container w3-padding">
+            <button class="w3-button w3-round siot-green devbutton-activate">
+              Activate
+            </button>
+<!--          </div>-->
+<!--          <div class="w3-quarter w3-center device-id">-->
+            <button class="w3-button w3-round siot-green devbutton-sensors">
+              Sensors
+            </button>
+<!--          </div>-->
+<!--          <div class="w3-quarter w3-center device-id">-->
+            <button class="w3-button w3-round siot-green devbutton-controllers">
+              Controllers
+            </button>
+<!--          </div>-->
+<!--          <div class="w3-quarter w3-right_align device-id">-->
+            <button class="w3-button w3-round siot-green devbutton-sensors-values">
+              Sensors values
+            </button>
+            <button class="w3-button w3-round siot-green devbutton-controls-values">
+              Controls values
+            </button>
+          </div>
+        </div>
+<!--        <div class="w3-container w3-padding w3-hide device-sensors">-->
+<!--          Sensors of device-->
+<!--          <div id="sensorList">-->
+<!--          </div>-->
+<!--        </div>-->
+<!--        <div class="w3-container w3-padding device-sensors">-->
+<!--          Sensors of device-->
+          <div id="sensorTemplate"
+               class="w3-border-top w3-border-left w3-border-black siot-green w3-margin-top w3-hide w3-round">
+            Sensors of device
+            <div class="w3-row w3-padding">
+              <div class="w3-quarter w3-left-align sensor-name">
+                Name: Sensor 1
+              </div>
+
+              <div class="w3-quarter w3-center sensor-id">
+                ID: 1
+              </div>
+
+              <div class="w3-quarter w3-center sensor-lastval">
+                Value: none
+              </div>
+            </div>
+          </div>
+<!--        </div>-->
+          <div id="controlTemplate"
+               class="w3-border-top w3-border-left w3-border-black siot-green w3-margin-top w3-hide w3-round">
+            Controls of device
+            <div class="w3-row w3-padding">
+              <div class="w3-quarter w3-left-align control-name">
+                Name: Control 1
+              </div>
+
+              <div class="w3-quarter w3-center control-id">
+                ID: 1
+              </div>
+
+              <div class="w3-quarter w3-center control-lastval">
+                Value: none
+              </div>
+            </div>
+          </div>
+
+
       </div>
 
-
     </div>
-  </div>
 
+  </div>
 </div>
 {% endblock %}
 
@@ -314,11 +385,37 @@ under the License.
         },
         beforeSend: function(xhr, settings) {
           xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+      })
+    }
+
+    //PUT /gateways/$gateway_id/devices/$device_id - activates device for user
+    function activateDevice(device_id) {
+      $.ajax({
+        url: host + ':' + port + '/gateways/' + GWdata.id + '/devices/' + GWinfo[GWdata.name].devices[device_id].id,
+        dataType: 'json',
+        contentType: 'application/json',
+        type: 'PUT',
+        data: JSON.stringify({"state":"active"}),
+        statusCode: {
+          404: function (response) {
+            alert(404);
+          },
+          400: function (response) {
+            alert('ERROR: Invalid Gateway ID entered!');
+          },
+          201: function (response) {
+            // alert("gateway added to user");
+          }
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer);
+        },
         complete: function (xhr, status) {
           getDevicesData();
         }
       })
     }
+
     //POST /gateways/ - connects gateway to user
     function connectGateway() {
       $.ajax({
@@ -359,6 +456,7 @@ under the License.
             },
             202: function (response) {
               console.log("deleted device" + response.data.id);
+              console.log(response);
             }
           },
           error: function (jqXHR, status, errorThrown) {
@@ -396,87 +494,138 @@ under the License.
         }
       })
     }
-    //PUT /gateways/$gateway_id/devices/$device_id - update info (set name, active/inactive,...)
-    function updateDevice() {
+
+    //GET /gateways/$gateway_id/devices/$device_id/controls
+    function showControls(device_id) {
+        $.ajax({
+            url: host + ':' + port +'/gateways/' + GWdata.id + '/devices/' + GWinfo[GWdata.name].devices[device_id].id + '/controls',
+            dataType: 'json',
+            type: 'GET',
+            success: function(response) {
+                controls = response;
+                console.log(controls);
+
+              GWinfo[GWdata.name].devices[device_id].controls = [];
+              for (i in response.data) {
+                GWinfo[GWdata.name].devices[device_id].controls.push({
+                  'name': response.data[i].display_name,
+                  'id': response.data[i].id,
+                  'last_val': '', //response.data[i].current.value,
+                });
+              }
+              console.log(GWinfo);
+            },
+            error: function (jqXHR, status, errorThrown) {
+                alert('error')
+            },
+            beforeSend: function(xhr, settings) {
+                xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+            complete: function (xhr, status) {
+                renderGateways();
+              }
+          })
+
+    }
+
+    //GET /gateways/$gateway_id/devices/$device_id/controls
+    function showSensors(device_id) {
       $.ajax({
-        url: host + ':' + port +'/gateways/' + GWinfo[GWdata.name].id + '/devices/' + GWinfo[GWdata.name].devices[0].id,
+        url: host + ':' + port +'/gateways/' + GWdata.id + '/devices/' + GWinfo[GWdata.name].devices[device_id].id + '/sensors',
+        dataType: 'json',
+        type: 'GET',
+        success: function(response) {
+          sensors = response;
+          console.log(sensors);
+
+          GWinfo[GWdata.name].devices[device_id].sensors = [];
+          for (i in response.data) {
+            GWinfo[GWdata.name].devices[device_id].sensors.push({
+              'name': response.data[i].display_name,
+              'id': response.data[i].id,
+              'last_val': '',
+            });
+          }
+          console.log(GWinfo);
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+        complete: function (xhr, status) {
+          renderGateways();
+        }
+      })
+    }
+
+    //GET /gateways/$gateway_id/devices/$device_id/sensors/$sensor_id - show details of sensor(measured value...)
+    function showSensorData(device_id, sensor_id) {
+      $.ajax({
+        url: host + ':' + port +'/gateways/' + GWdata.id + '/devices/' + GWinfo[GWdata.name].devices[device_id].id + '/sensors/' + GWinfo[GWdata.name].devices[device_id].sensors[sensor_id].id + '/current',
+        dataType: 'json',
+        type: 'GET',
+        success: function(response) {
+          console.log(response);
+          GWinfo[GWdata.name].devices[device_id].controls[sensor_id].last_val = response.data
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+      })
+    }
+
+    //GET /gateways/$gateway_id/devices/$device_id/controls/$contorl_id - show details of control(measured value...)
+    function showControlData(device_id, control_id) {
+      $.ajax({
+        url: host + ':' + port +'/gateways/' + GWdata.id + '/devices/' + GWinfo[GWdata.name].devices[device_id].id + '/controls/' + GWinfo[GWdata.name].devices[device_id].controls[control_id].id + '/current',
+        dataType: 'json',
+        type: 'GET',
+        success: function(response) {
+          console.log(response);
+          GWinfo[GWdata.name].devices[device_id].controls[control_id].last_val = response.data
+        },
+        error: function (jqXHR, status, errorThrown) {
+          alert('error')
+        },
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
+      })
+    }
+
+    //POST /gateways/$gateway_id/devices/$device_id/controls/$control_id/current
+    function changeControlState(device_id, control_id, new_state) {
+      $.ajax({
+        url: host + ':' + port +'/gateways'  + GWdata.id + '/devices/' + GWinfo[GWdata.name].devices[device_id].id + '/controls/' + GWinfo[GWdata.name].devices[device_id].controls[control_id].id + '/current',
         dataType: 'json',
         contentType: 'application/json',
-        type: 'PUT',
-        data: JSON.stringify({"name": "PGX"}),
+        type: 'POST',
+        data: JSON.stringify({"value":new_state,"timeout":10}),
         statusCode: {
           404: function (response) {
             alert(404);
           },
+          400: function (response) {
+            alert('ERROR: Invalid GW, device, or control ID entered!');
+          },
+          423: function (response) {
+            alert('ERROR: Another request is pending!');
+          },
           201: function (response) {
             // alert("gateway added to user");
+            console.log("changed state of device " + device_id + " : " + control_id + " to: " + new_state)
           }
         },
         beforeSend: function(xhr, settings) {
           xhr.setRequestHeader('Authorization','Bearer ' + bearer);
         },
         complete: function (xhr, status) {
-          showAfter();
+          getGatewaysData();
         }
       })
     }
-    function showAfter() {
-      $.ajax({
-        url: host + ':' + port +'/gateways/' + GWdata.id + '/devices',
-        dataType: 'json',
-        type: 'GET',
-        success: function(response) {
-          console.log(response);
-        },
-        error: function (jqXHR, status, errorThrown) {
-          alert('error')
-        },
-        beforeSend: function(xhr, settings) {
-          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
-        complete: function (xhr, status) {
-          renderGateways();
-        }
-      })
-    }
-    //GET /gateways/$gateway_id/devices/$device_id/sensors - list sensors
-    function showSensors() {
-      $.ajax({
-        url: host + ':' + port +'/gateways/' + GWdata.id + '/devices/' + GWinfo[GWdata.name].devices[0].id + '/sensors',
-        dataType: 'json',
-        type: 'GET',
-        success: function(response) {
-          sensors = response;
-          console.log(sensors);
-        },
-        error: function (jqXHR, status, errorThrown) {
-          alert('error')
-        },
-        beforeSend: function(xhr, settings) {
-          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
-        complete: function (xhr, status) {
-          renderGateways();
-        }
-      })
-    }
-    //GET /gateways/$gateway_id/devices/$device_id/sensors/$sensor_id - show details of sensor(measured value...)
-    function showSensorData() {
-      $.ajax({
-        url: host + ':' + port +'/gateways/' + GWdata.id + '/devices/' + GWinfo[GWdata.name].devices[2].id + '/sensors/' + sensors[0].id,
-        dataType: 'json',
-        type: 'GET',
-        success: function(response) {
-          console.log(response);
-        },
-        error: function (jqXHR, status, errorThrown) {
-          alert('error')
-        },
-        beforeSend: function(xhr, settings) {
-          xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
-        complete: function (xhr, status) {
-          renderGateways();
-        }
-      })
-    }
+
     // auth request na ziskanie tokenu
     connectToServer();
     function getGateways() {
@@ -505,29 +654,94 @@ under the License.
             console.log('removal process for: ' + gw.id);
             disconnectGateway();
           });
-          //pair discover devices button na gateway
-          $(template.find('.gwbutton-pair')[0]).click(() => {
+          //discover devices button na gateway
+          $(template.find('.gwbutton-discover')[0]).click(() => {
             console.log('pairing process for: ' + gw.id);
             discoverDevices();
           });
-          //pair unpair devices button na gateway
+
+          //show discovered devices button na gateway
+          $(template.find('.gwbutton-show')[0]).click(() => {
+            console.log('discovering devices for: ' + gw.id);
+            getDevicesData();
+          });
+
+          //unpair devices button na gateway
           $(template.find('.gwbutton-unpair')[0]).click(() => {
             console.log('unpairing process for: ' + gw.id);
             disconnectDevices();
           });
+
           let devList = $(template.find('.gateway-devices')[0]);
           for (j in gw.devices) {
             let dev = gw.devices[j];
+            let devindex = gw.devices.indexOf(dev);
             let devTml = $('#deviceTemplate').clone();
             devTml.attr('id', dev.id);
             devTml.removeClass('w3-hide');
             $(devTml.find('.device-name')[0]).html(dev.name);
             $(devTml.find('.device-id')[0]).html("ID:" + dev.id);
             $(devTml.find('.device-status')[0]).html(dev.active);
-            $(devTml.find('.device-status')[0]).html(dev.active);
             //unpair buttom pr zariadenie
             $(devTml.find('.devbutton-unpair')[0]).click(() => {
               console.log('unpairing process for: ' + gw.id + ' : ' + dev.id);
+            });
+
+            //activate devices button na gateway
+            $(devTml.find('.devbutton-activate')[0]).click(() => {
+              console.log('activating device: ' + gw.id);
+              activateDevice(devindex);
+            });
+
+            //button pre zobrazenie senzorov
+            $(devTml.find('.devbutton-sensors')[0]).click(() => {
+              // console.log(dev);
+              // console.log(j);
+              // console.log(gw.devices.indexOf(dev));
+              showSensors(devindex);
+              let sensorList = $(template.find('.device-sensors')[0]);
+              for (k in gw.devices[devindex].sensors) {
+                let sensor = gw.devices[devindex].sensors[k];
+                let sensorTml = $('#sensorTemplate').clone();
+                sensorTml.attr('id', sensor.id);
+                sensorTml.removeClass('w3-hide');
+                $(sensorTml.find('.sensor-name')[k]).html("Name:" + sensor.name);
+                $(sensorTml.find('.sensor-id')[k]).html("ID:" + sensor.id);
+                $(sensorTml.find('.sensor-lastval')[k]).html("Value" + sensor.last_val);
+                sensorList.append(sensorTml);
+              }
+            });
+
+            //button pre zobrazenie controllerov
+            $(devTml.find('.devbutton-controllers')[0]).click(() => {
+              showControls(devindex);
+              let controlList = $(template.find('.device-sensors')[0]);
+              for (k in gw.devices[devindex].controls) {
+                let control = gw.devices[devindex].controls[k];
+                let controlTml = $('#controlTemplate').clone();
+                controlTml.attr('id', control.id);
+                controlTml.removeClass('w3-hide');
+                $(controlTml.find('.control-name')[k]).html("Name:" + control.name);
+                $(controlTml.find('.control-id')[k]).html("ID:" + control.id);
+                $(controlTml.find('.control-lastval')[k]).html("Value" + control.last_val);
+                controlList.append(controlTml);
+              }
+            });
+
+            // button pre zobrazenie hodnot senzorov
+            $(devTml.find('.devbutton-sensors-values')[0]).click(() => {
+              for (k in gw.devices[devindex].sensors) {
+                showSensorData(devindex, k);
+              }
+              console.log(GWinfo);
+            });
+
+            // button pre zobrazenie hodnot senzorov
+            $(devTml.find('.devbutton-controls-values')[0]).click(() => {
+              for (k in gw.devices[devindex].controls) {
+                showControlData(devindex, k);
+              }
+              console.log(GWinfo);
             });
             devList.append(devTml);
           }
