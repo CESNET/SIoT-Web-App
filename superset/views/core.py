@@ -304,10 +304,9 @@ class BeeeOnView(BaseView, DeleteMixin):  # noqa
     # @has_access
     @expose("/")
     def beeeon(self):
-        if current_user.is_authenticated:
-            return self.render_template("beeeon/beeeon.html")
-        else:
-            return redirect("http://192.168.1.248:8088/users/userinfo/")
+        if not g.user or not g.user.get_id():
+            return redirect(appbuilder.get_url_for_login)
+        return self.render_template("beeeon/beeeon.html")
 
         
 
