@@ -160,80 +160,41 @@ under the License.
           <div class="w3-quarter w3-center device-id">
             ID: 5532489
           </div>
-          <div class="w3-quarter w3-right_align device-id">-->
-            <button class="w3-button w3-round siot-green devbutton-unpair">
-              Unpair
-            </button>
-          </div>
         </div>
 
         <div class="w3-row w3-padding">
-<!--          <div class="w3-quarter">-->
           <div class="w3-container w3-padding">
+
+            <button class="w3-button w3-round siot-green devbutton-unpair">
+              Unpair
+            </button>
             <button class="w3-button w3-round siot-green devbutton-activate">
               Activate
             </button>
-<!--          </div>-->
-<!--          <div class="w3-quarter w3-center device-id">-->
-            <button class="w3-button w3-round siot-green devbutton-sensors">
-              Sensors
+            <button class="w3-button w3-round siot-green devbutton-getperipherals">
+              Get Peripherals
             </button>
-<!--          </div>-->
-<!--          <div class="w3-quarter w3-center device-id">-->
-            <button class="w3-button w3-round siot-green devbutton-controllers">
-              Controllers
+            <button class="w3-button w3-round siot-green devbutton-getvalues">
+              Update Values
             </button>
-<!--          </div>-->
-<!--          <div class="w3-quarter w3-right_align device-id">-->
-            <button class="w3-button w3-round siot-green devbutton-sensors-values">
-              Sensors values
+            <button class="w3-button w3-round siot-green devbutton-update">
+              Switch Controller
             </button>
-            <button class="w3-button w3-round siot-green devbutton-controls-values">
-              Controls values
-            </button>
+<!--            <button class="w3-button w3-round siot-green devbutton-allinone">-->
+<!--              All in one-->
+<!--            </button>-->
           </div>
         </div>
-<!--        <div class="w3-container w3-padding w3-hide device-sensors">-->
-<!--          Sensors of device-->
-<!--          <div id="sensorList">-->
-<!--          </div>-->
-<!--        </div>-->
-<!--        <div class="w3-container w3-padding device-sensors">-->
-<!--          Sensors of device-->
-          <div id="sensorTemplate"
-               class="w3-border-top w3-border-left w3-border-black siot-green w3-margin-top w3-hide w3-round">
-            Sensors of device
-            <div class="w3-row w3-padding">
-              <div class="w3-quarter w3-left-align sensor-name">
-                Name: Sensor 1
-              </div>
 
-              <div class="w3-quarter w3-center sensor-id">
-                ID: 1
-              </div>
-
-              <div class="w3-quarter w3-center sensor-lastval">
-                Value: none
-              </div>
-            </div>
-          </div>
-<!--        </div>-->
-          <div id="controlTemplate"
-               class="w3-border-top w3-border-left w3-border-black siot-green w3-margin-top w3-hide w3-round">
-            Controls of device
-            <div class="w3-row w3-padding">
-              <div class="w3-quarter w3-left-align control-name">
-                Name: Control 1
-              </div>
-
-              <div class="w3-quarter w3-center control-id">
-                ID: 1
-              </div>
-
-              <div class="w3-quarter w3-center control-lastval">
-                Value: none
-              </div>
-            </div>
+          <div class="w3-row w3-padding siot-default-hidden" id="peripheralsTableWrapper">
+            <table class="w3-table" id="peripheralsTable">
+              <tr>
+                <th>Type</th>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Last Value</th>
+              </tr>
+            </table>
           </div>
 
 
@@ -243,6 +204,7 @@ under the License.
 
   </div>
 </div>
+
 {% endblock %}
 
 {% block tail_js %}
@@ -347,6 +309,8 @@ under the License.
               'name': response.data[i].name,
               'active': response.data[i].state,
               'id': response.data[i].id,
+              'sensors': [],
+              'controls': [],
             });
           }
           console.log(response);
@@ -409,9 +373,6 @@ under the License.
         },
         beforeSend: function(xhr, settings) {
           xhr.setRequestHeader('Authorization','Bearer ' + bearer);
-        },
-        complete: function (xhr, status) {
-          getDevicesData();
         }
       })
     }
@@ -512,6 +473,8 @@ under the License.
                   'id': response.data[i].id,
                   'last_val': '', //response.data[i].current.value,
                 });
+                if (response.data[i].current.value)
+                  GWinfo[GWdata.name].devices[device_id].controls[i].last_val = response.data[i].current
               }
               console.log(GWinfo);
             },
@@ -520,9 +483,6 @@ under the License.
             },
             beforeSend: function(xhr, settings) {
                 xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
-            complete: function (xhr, status) {
-                renderGateways();
-              }
           })
 
     }
@@ -544,6 +504,8 @@ under the License.
               'id': response.data[i].id,
               'last_val': '',
             });
+            if (response.data[i].current.value)
+              GWinfo[GWdata.name].devices[device_id].sensors[i].last_val = response.data[i].current
           }
           console.log(GWinfo);
         },
@@ -552,9 +514,6 @@ under the License.
         },
         beforeSend: function(xhr, settings) {
           xhr.setRequestHeader('Authorization','Bearer ' + bearer); },
-        complete: function (xhr, status) {
-          renderGateways();
-        }
       })
     }
 
@@ -566,7 +525,7 @@ under the License.
         type: 'GET',
         success: function(response) {
           console.log(response);
-          GWinfo[GWdata.name].devices[device_id].controls[sensor_id].last_val = response.data
+          GWinfo[GWdata.name].devices[device_id].sensors[sensor_id].last_val = response.data
         },
         error: function (jqXHR, status, errorThrown) {
           alert('error')
@@ -662,7 +621,7 @@ under the License.
 
           //show discovered devices button na gateway
           $(template.find('.gwbutton-show')[0]).click(() => {
-            console.log('discovering devices for: ' + gw.id);
+            // console.log('showing devices for: ' + gw.id);
             getDevicesData();
           });
 
@@ -694,56 +653,79 @@ under the License.
             });
 
             //button pre zobrazenie senzorov
-            $(devTml.find('.devbutton-sensors')[0]).click(() => {
-              // console.log(dev);
-              // console.log(j);
-              // console.log(gw.devices.indexOf(dev));
+            $(devTml.find('.devbutton-getperipherals')[0]).click(() => {
               showSensors(devindex);
-              let sensorList = $(template.find('.device-sensors')[0]);
-              for (k in gw.devices[devindex].sensors) {
-                let sensor = gw.devices[devindex].sensors[k];
-                let sensorTml = $('#sensorTemplate').clone();
-                sensorTml.attr('id', sensor.id);
-                sensorTml.removeClass('w3-hide');
-                $(sensorTml.find('.sensor-name')[k]).html("Name:" + sensor.name);
-                $(sensorTml.find('.sensor-id')[k]).html("ID:" + sensor.id);
-                $(sensorTml.find('.sensor-lastval')[k]).html("Value" + sensor.last_val);
-                sensorList.append(sensorTml);
-              }
+              showControls(devindex);
+
+              setTimeout(function (){
+                $('#peripheralsTableWrapper').toggle();
+                let table = $('#peripheralsTable');
+                peripheralType = "sensor"
+                for (m in gw.devices[devindex].sensors) {
+                  if (gw.devices[devindex].sensors.hasOwnProperty(m)) {
+                    table.append(`<tr><td>${peripheralType}</td><td>${gw.devices[devindex].sensors[m].id}</td><td>${gw.devices[devindex].sensors[m].name}</td><td>${gw.devices[devindex].sensors[m].last_val.value}</td></tr>`);
+                  }
+                }
+                peripheralType = "control"
+                for (m in gw.devices[devindex].controls) {
+                  if (gw.devices[devindex].controls.hasOwnProperty(m)){
+                    table.append(`<tr><td>${peripheralType}</td><td>${gw.devices[devindex].controls[m].id}</td><td>${gw.devices[devindex].controls[m].name}</td><td>${gw.devices[devindex].controls[m].last_val.value}</td></tr>`);
+                  }
+                }
+                renderGateways()
+              }, 200)
             });
 
             //button pre zobrazenie controllerov
-            $(devTml.find('.devbutton-controllers')[0]).click(() => {
-              showControls(devindex);
-              let controlList = $(template.find('.device-sensors')[0]);
-              for (k in gw.devices[devindex].controls) {
-                let control = gw.devices[devindex].controls[k];
-                let controlTml = $('#controlTemplate').clone();
-                controlTml.attr('id', control.id);
-                controlTml.removeClass('w3-hide');
-                $(controlTml.find('.control-name')[k]).html("Name:" + control.name);
-                $(controlTml.find('.control-id')[k]).html("ID:" + control.id);
-                $(controlTml.find('.control-lastval')[k]).html("Value" + control.last_val);
-                controlList.append(controlTml);
-              }
-            });
-
-            // button pre zobrazenie hodnot senzorov
-            $(devTml.find('.devbutton-sensors-values')[0]).click(() => {
+            $(devTml.find('.devbutton-getvalues')[0]).click(() => {
               for (k in gw.devices[devindex].sensors) {
                 showSensorData(devindex, k);
               }
-              console.log(GWinfo);
-            });
-
-            // button pre zobrazenie hodnot senzorov
-            $(devTml.find('.devbutton-controls-values')[0]).click(() => {
               for (k in gw.devices[devindex].controls) {
                 showControlData(devindex, k);
               }
-              console.log(GWinfo);
+
+              setTimeout(function (){
+                $('#peripheralsTableWrapper').toggle();
+                let table = $('#peripheralsTable');
+                peripheralType = "sensor"
+                for (m in gw.devices[devindex].sensors) {
+                  if (gw.devices[devindex].sensors.hasOwnProperty(m)) {
+                    table.append(`<tr><td>${peripheralType}</td><td>${gw.devices[devindex].sensors[m].id}</td><td>${gw.devices[devindex].sensors[m].name}</td><td>${gw.devices[devindex].sensors[m].last_val.value}</td></tr>`);
+                  }
+                }
+                peripheralType = "control"
+                for (m in gw.devices[devindex].controls) {
+                  if (gw.devices[devindex].controls.hasOwnProperty(m)){
+                    table.append(`<tr><td>${peripheralType}</td><td>${gw.devices[devindex].controls[m].id}</td><td>${gw.devices[devindex].controls[m].name}</td><td>${gw.devices[devindex].controls[m].last_val.value}</td></tr>`);
+                  }
+                }
+                renderGateways()
+              }, 200)
+
             });
+
+            $(devTml.find('.devbutton-update')[0]).click(() => {
+              var control_id = prompt("Please enter id of controller you want to edit", "0");
+              var state_id = prompt("Please enter id of the desired state", "0");
+
+              if (control_id == null || control_id == "" || state_id == null || state_id == "") {
+                txt = "User cancelled the prompt.";
+              } else {
+                if (control_id < gw.devices[devindex].sensors.length) {
+                  txt = "State of controller: " + control_id + " will be changed to: " + state_id;
+                }
+                else
+                  txt = "Controller with such id does not exist for selected device"
+              }
+              console.log(txt)
+            });
+
+            // // button pre zobrazenie hodnot controllerov
+            // $(devTml.find('.devbutton-allinone')[0]).click(() => {
+            // });
             devList.append(devTml);
+
           }
           $('#gatewayList').empty();
           template.appendTo('#gatewayList');
